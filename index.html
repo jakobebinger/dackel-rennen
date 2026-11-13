@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#a9d9f2" />
+  <title>Dackel-Rennen</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%8C%AD%3C/text%3E%3C/svg%3E" />
+  <script type="module" crossorigin src="./assets/index-DzEwjFSr.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-B8Pi1hle.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div class="stats">
+      <div class="stat"><span class="k">Länge</span><span class="v" id="hLen">70 cm</span></div>
+      <div class="stat"><span class="k">Würste</span><span class="v" id="hCount">0</span></div>
+      <div class="stat"><span class="k">Zeit</span><span class="v" id="hTime">0:00</span></div>
+      <div id="relaxTag" class="tag relax hidden">Entspannt</div>
+    </div>
+    <div class="hud-buttons">
+      <button id="btnMute" class="icon" aria-label="Ton aus" title="Ton aus (M)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="spk" d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/><path class="cross" d="M16 9l6 6M22 9l-6 6"/></svg>
+      </button>
+      <button id="btnPause" class="icon" aria-label="Pause" title="Pause (Esc)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
+      </button>
+    </div>
+    <div id="stamina" class="stamina"><span>Ausdauer</span><div class="bar"><div id="hStam"></div></div></div>
+    <div id="boostTag" class="tag boost hidden">Turbo!</div>
+    <div id="mpList" class="mplist hidden"></div>
+    <div id="spectate" class="tag spectate hidden">Du bist raus – Zuschauen</div>
+  </div>
+  <div id="labels"></div>
+  <div id="countdown" class="countdown hidden"></div>
+  <div id="toasts"></div>
+
+  <!-- Touch-Steuerung -->
+  <div id="touch">
+    <div id="joyZone"><div id="joyBase"><div id="joyKnob"></div></div><span class="hint">Ziehen zum Laufen</span></div>
+    <button id="btnSprint" aria-label="Sprint">Sprint</button>
+    <button id="btnJump" aria-label="Springen">Hopp!</button>
+  </div>
+
+  <!-- Startbildschirm -->
+  <div id="screenStart" class="screen hidden">
+    <div class="card">
+      <p class="eyebrow">Ein Garten. Ein Dackel. Viele Würste.</p>
+      <h1>Dackel-Rennen</h1>
+      <p class="lead">Friss Würste und werde immer länger. Aber beiß dir nicht in den eigenen Rücken!</p>
+      <ul class="legend">
+        <li><i class="dot red"></i>Wurst <b>+1</b></li>
+        <li><i class="dot gold"></i>Goldwurst <b>+3</b></li>
+        <li><i class="dot blue"></i>Wurstkette <b>Turbo</b></li>
+      </ul>
+      <div class="keys desktop-only">
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> laufen</span>
+        <span><kbd>Leertaste</kbd> springen</span>
+        <span><kbd>Shift</kbd> sprinten</span>
+        <span><kbd>Esc</kbd> Pause</span>
+        <span><kbd>N</kbd> Musik</span>
+      </div>
+      <div class="keys touch-only">
+        <span>Links ziehen: laufen</span><span>Hopp!: springen</span><span>Sprint halten: rennen</span>
+      </div>
+      <label class="switch"><input type="checkbox" class="relaxed-toggle" /><span class="track"></span>Entspannter Modus <small>(kein Game Over)</small></label>
+      <label class="switch"><input type="checkbox" class="music-toggle" /><span class="track"></span>Polka-Musik</label>
+      <button id="btnStart" class="primary">Allein spielen</button>
+      <p id="bestLine" class="best"></p>
+      <div class="online">
+        <p class="eyebrow">Online mit Freunden</p>
+        <input id="nick" class="text" type="text" maxlength="16" placeholder="Dein Name" autocomplete="off" spellcheck="false" />
+        <div class="row">
+          <button id="btnHost" class="secondary">Spiel erstellen</button>
+          <button id="btnJoin" class="secondary">Beitreten</button>
+        </div>
+        <p id="mpError" class="error hidden"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Online: Beitreten -->
+  <div id="screenJoin" class="screen hidden">
+    <div class="card small">
+      <h2>Beitreten</h2>
+      <p class="lead">Raumcode vom Host eingeben, z. B. <b>WURST-42</b></p>
+      <input id="joinCode" class="text code" type="text" maxlength="14" placeholder="WURST-42" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+      <p id="joinError" class="error hidden"></p>
+      <button id="btnJoinGo" class="primary">Verbinden</button>
+      <button id="btnJoinBack" class="link">Zurück</button>
+    </div>
+  </div>
+
+  <!-- Online: Lobby -->
+  <div id="screenLobby" class="screen hidden">
+    <div class="card">
+      <p class="eyebrow">Raumcode</p>
+      <div id="lobbyCode" class="code-big">…</div>
+      <p class="lead small">Code an Freunde schicken – alle brauchen dieselbe Spieldatei.</p>
+      <ul id="lobbyPlayers" class="players"></ul>
+      <div id="lobbyHostOpts">
+        <div class="modes">
+          <label class="mode"><input type="radio" name="mpMode" value="battle" checked /><span><b>Battle</b><small>Wer einen anderen Dackel berührt, ist raus. Der Letzte gewinnt.</small></span></label>
+          <label class="mode"><input type="radio" name="mpMode" value="race" /><span><b>Zeitrennen</b><small>3 Minuten, niemand fliegt raus. Der Längste gewinnt.</small></span></label>
+        </div>
+        <label class="switch"><input type="checkbox" id="lobbyRelaxed" /><span class="track"></span>Entspannt <small>(kein Selbstbiss)</small></label>
+      </div>
+      <p id="lobbyInfo" class="lead small"></p>
+      <button id="btnLobbyStart" class="primary">Start</button>
+      <button id="btnLobbyLeave" class="link">Verlassen</button>
+    </div>
+  </div>
+
+  <!-- Online: Rundenende -->
+  <div id="screenMpOver" class="screen hidden">
+    <div class="card">
+      <h2 id="mpOverTitle">Runde vorbei</h2>
+      <p id="mpOverText" class="lead"></p>
+      <ol id="mpRank" class="rank"></ol>
+      <div class="row">
+        <button id="btnMpAgain" class="primary">Nochmal</button>
+        <button id="btnMpMenu" class="secondary">Zum Menü</button>
+      </div>
+      <p id="mpOverWait" class="lead small hidden">Warten auf den Host…</p>
+    </div>
+  </div>
+
+  <!-- Online: Esc-Overlay (Spiel läuft weiter) -->
+  <div id="screenMpPause" class="screen dim hidden">
+    <div class="card small">
+      <h2>Online-Spiel</h2>
+      <p class="lead">Das Spiel läuft weiter.</p>
+      <button id="btnMpResume" class="primary">Weiterspielen</button>
+      <label class="switch"><input type="checkbox" class="music-toggle" /><span class="track"></span>Polka-Musik</label>
+      <button id="btnMpLeave" class="secondary">Verlassen</button>
+    </div>
+  </div>
+
+  <!-- Pause -->
+  <div id="screenPause" class="screen dim hidden">
+    <div class="card small">
+      <h2>Pause</h2>
+      <button id="btnResume" class="primary">Weiter</button>
+      <label class="switch"><input type="checkbox" class="relaxed-toggle" /><span class="track"></span>Entspannter Modus</label>
+      <label class="switch"><input type="checkbox" class="music-toggle" /><span class="track"></span>Polka-Musik</label>
+      <div class="row">
+        <button id="btnRestartP" class="secondary">Neustart</button>
+        <button id="btnEnd" class="secondary">Runde beenden</button>
+      </div>
+      <button id="btnMenuP" class="link">Hauptmenü</button>
+    </div>
+  </div>
+
+  <!-- Game Over -->
+  <div id="screenOver" class="screen hidden">
+    <div class="card">
+      <h2 id="overTitle">Autsch!</h2>
+      <p id="overText" class="lead">Waldi hat sich in den eigenen Rücken gebissen.</p>
+      <div id="overRecord" class="record hidden">Neuer Rekord!</div>
+      <div id="overStats" class="result"></div>
+      <div class="row">
+        <button id="btnRestart" class="primary">Nochmal!</button>
+        <button id="btnMenu" class="secondary">Menü</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
